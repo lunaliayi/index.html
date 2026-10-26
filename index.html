@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daylight – Lyric Player</title>
+<style>
+  :root {
+    --bg: #fff8ee; --fg: #3a2e22; --dim: #b9a98f; --accent: #e8a317; --card: #ffffff; --border: #eadfc9;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1812; --fg: #f3e9d6; --dim: #6f6451; --accent: #f5c04a; --card: #26211a; --border: #3a3226;
+      color-scheme: dark;
+    }
+  }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: Georgia, "Times New Roman", serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  p.sub { margin: 0 0 20px; color: var(--dim); font-size: .95rem; }
+  textarea {
+    width: 100%; min-height: 140px; box-sizing: border-box; padding: 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: var(--fg); font: inherit; resize: vertical;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0 20px; }
+  button {
+    padding: 10px 18px; border: 0; border-radius: 999px; background: var(--accent); color: #2a1f08;
+    font: inherit; font-weight: bold; cursor: pointer;
+  }
+  button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+  input[type=number] {
+    width: 64px; padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--card); color: var(--fg); font: inherit;
+  }
+  #stage { text-align: center; padding: 24px 0; min-height: 260px; }
+  .line { font-size: 1.15rem; padding: 6px 0; color: var(--dim); transition: all .4s ease; }
+  .line.active { color: var(--accent); font-size: 1.7rem; font-weight: bold; }
+  .line.done { opacity: .5; }
+</style>
+</head>
+<body>
+<main>
+  <h1>☀️ Daylight</h1>
+  <p class="sub">Paste your own lyrics below, set the speed, and press Play.</p>
+
+  <textarea id="lyrics" placeholder="Paste lyrics here, one line per row…"></textarea>
+
+  <div class="row">
+    <label for="secs">Seconds per line</label>
+    <input id="secs" type="number" min="1" max="15" value="4">
+    <button id="play">▶ Play</button>
+    <button id="stop" class="ghost">Reset</button>
+  </div>
+
+  <div id="stage" aria-live="polite"></div>
+</main>
+
+<script>
+  const lyricsEl = document.getElementById('lyrics');
+  const stage = document.getElementById('stage');
+  const secsEl = document.getElementById('secs');
+  let timer = null, idx = 0, lines = [];
+
+  function render() {
+    stage.innerHTML = '';
+    lines.forEach((text, i) => {
+      const d = document.createElement('div');
+      d.className = 'line';
+      d.textContent = text;
+      d.id = 'l' + i;
+      stage.appendChild(d);
+    });
+  }
+
+  function step() {
+    lines.forEach((_, i) => {
+      const el = document.getElementById('l' + i);
+      el.className = 'line' + (i === idx ? ' active' : i < idx ? ' done' : '');
+    });
+    const active = document.getElementById('l' + idx);
+    if (active) active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    idx++;
+    if (idx > lines.length) reset();
+  }
+
+  function reset() {
+    clearInterval(timer);
+    timer = null;
+    idx = 0;
+    lines.forEach((_, i) => { document.getElementById('l' + i).className = 'line'; });
+  }
+
+  document.getElementById('play').onclick = () => {
+    reset();
+    lines = lyricsEl.value.split('\n').map(s => s.trim()).filter(Boolean);
+    if (!lines.length) { stage.textContent = 'Please paste some lyrics first.'; return; }
+    render();
+    step();
+    timer = setInterval(step, Math.max(1, Number(secsEl.value) || 4) * 1000);
+  };
+
+  document.getElementById('stop').onclick = reset;
+</script>
+</body>
+</html>
